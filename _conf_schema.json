@@ -1,0 +1,14 @@
+{
+  "is_recall": {
+    "description": "撤回消息",
+    "type": "bool",
+    "hint": "true=自动撤回消息，false=不自动撤回",
+    "default": false
+  },
+   "recall_time": {
+        "description": "撤回时间",
+        "type": "int",
+        "hint": "自动撤回消息的间隔时间，单位为秒，默认60",
+        "default": 60
+    }
+}
