@@ -3,4 +3,4 @@ display_name: 消息撤回 # 用于展示的名字，可以是方便人类阅读
 desc: 一个自动撤回触发词和机器人发送的消息的插件。 # 插件简短描述
 version: v1.0.0 # 插件版本号。格式：v1.1.1 或者 v1.1
 author: XiaoZhao # 作者
-repo: https://github.com/Soulter/helloworld # 插件的仓库地址
+repo: https://github.com/zxqtd/astrbot_plugin_recall_xz # 插件的仓库地址
