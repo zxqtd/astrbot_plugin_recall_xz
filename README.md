@@ -10,3 +10,13 @@ This is an AstrBot plugin that automatically withdraws messages sent by the bot,
 目前只测试了astrbot可正常使用，如需适配其他端请发送issue
 
 Currently, only AstrBot has been tested and is working normally. If you need adaptation for other platforms, please send an issue.
+
+# 指令
+recall enable 开启自动撤回
+
+recall disable 关闭自动撤回
+
+# TODO
+1.添加不撤回列表
+
+2.修复合并消息不撤回问题

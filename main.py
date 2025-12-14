@@ -14,13 +14,14 @@ from astrbot.api import logger
 class MyPlugin(Star):
     def __init__(self, context: Context, config: AstrBotConfig):
         self.config = config
+        self.recall_tips = "recall enable:开启自动撤回\nrecall disable:开启关闭撤回"
         super().__init__(context)
 
     async def initialize(self):
         """可选择实现异步的插件初始化方法，当实例化该插件类之后会自动调用该方法。"""
 
     # 注册指令的装饰器。指令名为 helloworld。注册成功后，发送 `/helloworld` 就会触发这个指令，并回复 `你好, {user_name}!`
-    @filter.command("helloworld")
+    # @filter.command("helloworld")
     async def helloworld(self, event: AstrMessageEvent):
         """这是一个 hello world 指令""" # 这是 handler 的描述，将会被解析方便用户了解插件内容。建议填写。
         user_name = event.get_sender_name()
@@ -61,3 +62,19 @@ class MyPlugin(Star):
         asyncio.create_task(self._recall_msg(client, send_message_id))
         chain.clear()
         event.stop_event()
+
+    def sw(self, option:bool):
+        self.config['is_recall'] = option
+
+    @filter.command("recall")
+    async def recall(self, event: AstrMessageEvent):
+        message = event.message_str
+        if message.startswith('recall enable'):
+            self.sw(True)
+            yield event.plain_result("已开启自动撤回")
+            return
+        elif message.startswith('recall disable'):
+            self.sw(False)
+            yield event.plain_result("已关闭自动撤回")
+            return
+        yield event.plain_result(self.recall_tips)
