@@ -10,26 +10,28 @@ from astrbot.core.platform.sources.aiocqhttp.aiocqhttp_message_event import (
 from astrbot.core import AstrBotConfig
 from astrbot.api import logger
 
-@register("recall", "XiaoZhao", "自动撤回机器人发送的消息", "1.0.0")
+@register("recall", "小钊", "自动撤回机器人发送的消息", "1.1.0")
 class MyPlugin(Star):
     def __init__(self, context: Context, config: AstrBotConfig):
         self.config = config
         self.recall_tips = "recall enable:开启自动撤回\nrecall disable:开启关闭撤回"
+        self.recall_task = []
         super().__init__(context)
 
     async def initialize(self):
         """可选择实现异步的插件初始化方法，当实例化该插件类之后会自动调用该方法。"""
 
-    # 注册指令的装饰器。指令名为 helloworld。注册成功后，发送 `/helloworld` 就会触发这个指令，并回复 `你好, {user_name}!`
-    # @filter.command("helloworld")
-    async def helloworld(self, event: AstrMessageEvent):
+    # @filter.command("test")
+    async def test(self, event: AstrMessageEvent, a: int, b: int):
         """这是一个 hello world 指令""" # 这是 handler 的描述，将会被解析方便用户了解插件内容。建议填写。
         user_name = event.get_sender_name()
         message_str = event.message_str # 用户发的纯文本消息字符串
         message_chain = event.get_messages() # 用户所发的消息的消息链 # from astrbot.api.message_components import *
-        yield event.plain_result(f"Hello, {user_name}, 你发了 {message_str}!") # 发送一条纯文本消息
+        yield event.plain_result(f"Hello, {user_name}, 你发了 {message_str}!传入的参数a {a},b {b}") # 发送一条纯文本消息
 
     async def terminate(self):
+        for task in self.recall_task:
+            task.cancel()
         """可选择实现异步的插件销毁方法，当插件被卸载/停用时会调用。"""
 
     async def _recall_msg(self, client: CQHttp, message_id: int = 1):
@@ -42,39 +44,82 @@ class MyPlugin(Star):
         except Exception as e:
             logger.error(f"撤回消息失败: {e}")
 
+    def remove_task(self, task):
+        try:
+            self.recall_task.remove(task)
+        except:
+            pass
+
+    def sw(self, boolean: str, option: str):
+        try:
+            self.config[option+'_is_recall'] = True if boolean == "enable" else False
+            return True
+        except:
+            return False
+
     @filter.on_decorating_result()
     async def on_decorating_result(self, event: AiocqhttpMessageEvent):
         """检测到有消息发出时自动调用撤回方法，以实现触发词和发送内容的撤回"""
-        if not self.config["is_recall"]:
+        # if 如果全局撤回、触发撤回、发送撤回都未开启则直接退出，交由其他插件处理
+        if not self.config["all_is_recall"] and not self.config['send_is_recall'] and not self.config['trigger_is_recall']:
             return
-        trigger_message_id = int(event.message_obj.message_id)
+        # 初始化client
         client = event.bot
-        asyncio.create_task(self._recall_msg(client, trigger_message_id))
-        chain = event.get_result().chain
-        obmsg = await event._parse_onebot_json(MessageChain(chain=chain))
-
-        send_result = None
-        if group_id := event.get_group_id():
-            send_result = await client.send_group_msg(
-                group_id=int(group_id), message=obmsg
-            )
-        send_message_id = int(send_result.get("message_id"))
-        asyncio.create_task(self._recall_msg(client, send_message_id))
-        chain.clear()
+        # if 开启了全局撤回或 开启了触发撤回则撤回触发机器人的消息
+        if self.config["all_is_recall"] or self.config['trigger_is_recall']:
+            # 获取触发机器人的消息id
+            trigger_message_id = int(event.message_obj.message_id)
+            # 调用撤回函数撤回消息
+            task = asyncio.create_task(self._recall_msg(client, trigger_message_id))
+            # 为任务添加一个结束回调函数，用来删除已完成的任务
+            task.add_done_callback(self.remove_task)
+            # 将任务添加到撤回任务列表内
+            self.recall_task.append(task)
+        # elif 开启了全局撤回或 开启了发送撤回则撤回机器人发送的消息
+        elif self.config["all_is_recall"] or self.config['send_is_recall']:
+            # 获取原始消息内容
+            chain = event.get_result().chain
+            # 将原始内容格式化napcat api对应的格式
+            obmsg = await event._parse_onebot_json(MessageChain(chain=chain))
+            # 初始化发送的结果
+            send_result = None
+            # if 如果可以获取到group_id则把group_id 赋值给变量，并且进入分支
+            if group_id := event.get_group_id():
+                # 调用napcat的send_group_msg接口发送消息并将结果赋值给send_result
+                send_result = await client.send_group_msg(group_id=int(group_id), message=obmsg)
+            # elif 如果可以获取到sender_id则把sender_id 赋值给变量，并且进入分支
+            elif user_id := event.get_sender_id():
+                # 调用napcat的send_private_msg接口发送消息并将结果赋值给send_result
+                send_result = await client.send_private_msg(user_id=int(user_id), message=obmsg)
+            # 获取发送的消息id
+            send_message_id = int(send_result.get("message_id"))
+            # 调用撤回函数撤回消息
+            task = asyncio.create_task(self._recall_msg(client, send_message_id))
+            # 为任务添加一个结束回调函数，用来删除已完成的任务
+            task.add_done_callback(self.remove_task)
+            # 将任务添加到撤回任务列表内
+            self.recall_task.append(task)
+            # 将原始消息链清空，避免消息被多次发送
+            chain.clear()
+        # 结束事件
         event.stop_event()
 
-    def sw(self, option:bool):
-        self.config['is_recall'] = option
-
+    # 过滤指令recall
     @filter.command("recall")
     async def recall(self, event: AstrMessageEvent):
-        message = event.message_str
-        if message.startswith('recall enable'):
-            self.sw(True)
-            yield event.plain_result("已开启自动撤回")
+        options = ["all", "send", "trigger"]
+        booleans = ["enable", "disable"]
+        try:
+            command, option, boolean = event.get_message_str().split(" ")
+        except:
+            yield event.plain_result(f"命令：recall <option> <boolean> \noption不符合要求，option可选{options}\nboolean可选{booleans}")
             return
-        elif message.startswith('recall disable'):
-            self.sw(False)
-            yield event.plain_result("已关闭自动撤回")
+        if option not in options or boolean not in booleans:
+            yield event.plain_result(f"命令：recall <option> <boolean> \noption不符合要求，option可选{options}\nboolean可选{booleans}")
             return
-        yield event.plain_result(self.recall_tips)
+        status = self.sw(boolean,option)
+        if status:
+            status = "开启" if boolean == "enable" else "关闭"
+            msg = f"已{status}撤回发送消息" if option == "send" else (f"已{status}撤回所有" if option == "all" else f"已{status}撤回触发消息")
+            yield event.plain_result(msg)
+            return
