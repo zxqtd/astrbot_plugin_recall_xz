@@ -1,7 +1,7 @@
 name: astrbot_plugin_recall_xz
 display_name: 消息撤回
 desc: 一个自动撤回触发词和机器人发送的消息的插件。
-version: v1.1.0
+version: v1.1.1
 author: 小钊
 repo: https://github.com/zxqtd/astrbot_plugin_recall_xz
 social_link: https://blog.zxqblog.cn
