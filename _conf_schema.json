@@ -1,14 +1,56 @@
 {
-  "is_recall": {
-    "description": "撤回消息",
+  "all_is_recall": {
+    "description": "撤回消息（全局）",
     "type": "bool",
     "hint": "true=自动撤回消息，false=不自动撤回",
+    "default": false
+  },
+  "send_is_recall": {
+    "description": "撤回消息（发送）",
+    "type": "bool",
+    "hint": "true=自动撤回机器人发送的消息，false=不自动撤回机器人发送的消息",
+    "default": false
+  },
+  "trigger_is_recall": {
+    "description": "撤回消息（触发）",
+    "type": "bool",
+    "hint": "true=自动撤回触发机器人的消息，false=不自动撤回触发机器人的消息",
+    "default": false
+  },
+  "send_wl": {
+    "description": "发送白名单",
+    "type": "list",
+    "hint": "检测机器人发送的内容，出现白名单的内容不撤回",
+    "default": false
+  },
+  "trigger_wl": {
+    "description": "触发白名单",
+    "type": "list",
+    "hint": "检测触发机器人的内容，出现白名单的内容不撤回",
+    "default": false
+  },
+  "wl_sw": {
+    "description": "消息白名单检测",
+    "type": "bool",
+    "hint": "true=开启消息白名单检测，false=不开启消息白名单检测",
+    "default": false
+  },
+  "no_recall_qq_wl": {
+    "description": "不撤回白名单（qq号检测）",
+    "type": "list",
+    "hint": "检测触发机器人的qq，出现白名单不撤回(触发和发送)",
+    "default": false
+  },
+  "no_recall_qq_sw": {
+    "description": "不撤回白名单检测（qq号检测）",
+    "type": "bool",
+    "hint": "true=开启不撤回白名单检测，false=不开启不撤回白名单检测",
     "default": false
   },
    "recall_time": {
         "description": "撤回时间",
         "type": "int",
-        "hint": "自动撤回消息的间隔时间，单位为秒，默认60",
-        "default": 60
+        "hint": "自动撤回消息的间隔时间，单位为秒，默认30",
+        "default": 30
     }
 }
