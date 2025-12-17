@@ -10,11 +10,15 @@ from astrbot.core.platform.sources.aiocqhttp.aiocqhttp_message_event import (
 from astrbot.core import AstrBotConfig
 from astrbot.api import logger
 
-@register("recall", "小钊", "自动撤回机器人发送的消息", "1.1.0")
+from .utils.command_utils import CommandUtils
+from .utils.my_config_utils import MyConfigUtils
+
+@register("recall", "小钊", "自动撤回机器人发送的消息", "1.1.2")
 class MyPlugin(Star):
     def __init__(self, context: Context, config: AstrBotConfig):
         self.config = config
-        self.recall_tips = "recall enable:开启自动撤回\nrecall disable:开启关闭撤回"
+        self.my_config_utils = MyConfigUtils(config)
+        self.command = CommandUtils(self.my_config_utils)
         self.recall_task = []
         super().__init__(context)
 
@@ -32,6 +36,8 @@ class MyPlugin(Star):
     async def terminate(self):
         for task in self.recall_task:
             task.cancel()
+        self.config.save_config()
+
         """可选择实现异步的插件销毁方法，当插件被卸载/停用时会调用。"""
 
     async def _recall_msg(self, client: CQHttp, message_id: int = 1):
@@ -50,23 +56,16 @@ class MyPlugin(Star):
         except:
             pass
 
-    def sw(self, boolean: str, option: str):
-        try:
-            self.config[option+'_is_recall'] = True if boolean == "enable" else False
-            return True
-        except:
-            return False
-
     @filter.on_decorating_result()
     async def on_decorating_result(self, event: AiocqhttpMessageEvent):
         """检测到有消息发出时自动调用撤回方法，以实现触发词和发送内容的撤回"""
         # if 如果全局撤回、触发撤回、发送撤回都未开启则直接退出，交由其他插件处理
-        if not self.config["all_is_recall"] and not self.config['send_is_recall'] and not self.config['trigger_is_recall']:
+        if not self.config['send_is_recall'] and not self.config['trigger_is_recall']:
             return
         # 初始化client
         client = event.bot
         # if 开启了全局撤回或 开启了触发撤回则撤回触发机器人的消息
-        if self.config["all_is_recall"] or self.config['trigger_is_recall']:
+        if self.config['trigger_is_recall']:
             # 获取触发机器人的消息id
             trigger_message_id = int(event.message_obj.message_id)
             # 调用撤回函数撤回消息
@@ -75,8 +74,8 @@ class MyPlugin(Star):
             task.add_done_callback(self.remove_task)
             # 将任务添加到撤回任务列表内
             self.recall_task.append(task)
-        # elif 开启了全局撤回或 开启了发送撤回则撤回机器人发送的消息
-        elif self.config["all_is_recall"] or self.config['send_is_recall']:
+        # if 开启了全局撤回或 开启了发送撤回则撤回机器人发送的消息
+        if self.config['send_is_recall']:
             # 获取原始消息内容
             chain = event.get_result().chain
             # 将原始内容格式化napcat api对应的格式
@@ -101,25 +100,12 @@ class MyPlugin(Star):
             self.recall_task.append(task)
             # 将原始消息链清空，避免消息被多次发送
             chain.clear()
-        # 结束事件
-        event.stop_event()
+            # 结束事件
+            event.stop_event()
 
     # 过滤指令recall
     @filter.command("recall")
     async def recall(self, event: AstrMessageEvent):
-        options = ["all", "send", "trigger"]
-        booleans = ["enable", "disable"]
-        try:
-            command, option, boolean = event.get_message_str().split(" ")
-        except:
-            yield event.plain_result(f"命令：recall <option> <boolean> \noption不符合要求，option可选{options}\nboolean可选{booleans}")
-            return
-        if option not in options or boolean not in booleans:
-            yield event.plain_result(f"命令：recall <option> <boolean> \noption不符合要求，option可选{options}\nboolean可选{booleans}")
-            return
-        status = self.sw(boolean,option)
-        if status:
-            status = "开启" if boolean == "enable" else "关闭"
-            msg = f"已{status}撤回发送消息" if option == "send" else (f"已{status}撤回所有" if option == "all" else f"已{status}撤回触发消息")
-            yield event.plain_result(msg)
-            return
+        res = self.command.recall(event)
+        yield event.plain_result(res)
+
