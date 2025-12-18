@@ -46,5 +46,25 @@
         "type": "int",
         "hint": "自动撤回消息的间隔时间，单位为秒，默认30",
         "default": 30
-    }
+    },
+  "seg_send_sw": {
+    "description": "分段发送",
+    "type": "bool",
+    "hint": "true=开启分段发送，false=不开启分段发送",
+    "default": false
+  },
+  "image_no_recall_sw" : {
+    "description": "不撤回图片",
+    "type": "bool",
+    "hint": "true=不会撤回图片，false=会撤回图片",
+    "default": false
+  },
+  "seg_random_time": {
+    "description": "分段发送随机间隔",
+    "type": "string",
+    "hint": "格式:最小值,最大值(如:1,3)",
+    "default": "1,3"
+  }
+
+
 }
