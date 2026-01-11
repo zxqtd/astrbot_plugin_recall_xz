@@ -1,3 +1,5 @@
+import ctypes
+
 from astrbot.core import logger
 
 from astrbot.core.platform import AstrMessageEvent
@@ -21,13 +23,18 @@ class CommandUtils:
                 return "获取失败"
         elif system == 'Windows':
             try:
-                import ctypes
-                uptime = ctypes.windll.kernel32.GetTickCount()
-                uptime_seconds = uptime / 1000.0
-            except ImportError:
+                # 使用 GetTickCount64 避免 49.7 天溢出问题
+                lib = ctypes.windll.kernel32
+                lib.GetTickCount64.restype = ctypes.c_uint64  # 显式指定返回类型为 64位无符号整型
+                uptime_ms = lib.GetTickCount64()
+                uptime_seconds = uptime_ms / 1000.0
+            except AttributeError:
+                # 兼容极老版本的 Windows (XP及以下)
+                uptime_ms = ctypes.windll.kernel32.GetTickCount()
+                if uptime_ms < 0: uptime_ms += 2 ** 32  # 手动处理负数情况
+                uptime_seconds = uptime_ms / 1000.0
+            else:
                 return "获取失败"
-        else:
-            return "获取失败"
 
             # 转换为可读格式
         days = uptime_seconds // (24 * 3600)
@@ -45,7 +52,7 @@ class CommandUtils:
             # status
             if len(arr) == 2:
                 # 运行状态
-                if arr[1] not in self.message.status_options():
+                if arr[1] not in str(self.message.status_options()) or arr[1] in self.message.status_options()[1]:
                     return self.message.tips()
                 config = self.my_config.get_all_config()
                 msg = f"触发撤回：{config[1]}\n发送撤回：{config[0]}\n消息白名单检测:{config[4]}\n触发者白名单检测：{config[6]}\n不撤回图片：{config[8]}\n分段回复：{config[9]}\n触发消息白名单列表：{config[3]}\n发送消息白名单检测：{config[2]}\n触发者白名单列表:{config[5]}\n消息撤回时间:{config[7]}\n分段随机发送间隔:{config[10]}\n服务器开机时间：{self._get_uptime()}"
@@ -53,14 +60,14 @@ class CommandUtils:
             # 开关类
             elif len(arr) == 3:
                 command, option, boolean = arr
-                if boolean in self.message.booleans() and option in self.message.sw_options():
+                if boolean.lower() in self.message.booleans() and option.lower() in self.message.sw_options():
                     if option == "all":
                         status = self.my_config.sw(boolean, "send") and self.my_config.sw(boolean, "trigger")
                     else:
                         status = self.my_config.sw(boolean, option)
                     if status:
                         status = self.message.booleans().get(boolean)
-                        msg = f"已{status}{self.message.sw_options().get(option)}"
+                        msg = f"已{status}{self.message.sw_options().get(option)}" + ("\n消息分段回复只是防止框架开启后并且启用了此插件导致不会分段的情况，不会自己分段！并且有一定的副作用不建议开启!" if option == "seg_send" else "")
                         return msg
                     else:
                         return "操作失败，详情原因请查看日志"

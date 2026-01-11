@@ -15,7 +15,7 @@ from astrbot.api import logger
 from .utils.command_utils import CommandUtils
 from .utils.my_config_utils import MyConfigUtils
 
-@register("recall", "小钊", "自动撤回机器人发送的消息", "1.1.3")
+@register("recall", "小钊", "自动撤回机器人发送的消息", "1.1.4")
 class MyPlugin(Star):
     def __init__(self, context: Context, config: AstrBotConfig):
         self.config = config
@@ -72,10 +72,12 @@ class MyPlugin(Star):
         except:
             pass
 
+    # 暂时只适配群聊，aiocqhttp，后续考虑适配其他的
+    @filter.event_message_type(filter.EventMessageType.GROUP_MESSAGE)
+    @filter.platform_adapter_type(filter.PlatformAdapterType.AIOCQHTTP)
     @filter.on_decorating_result()
     async def on_decorating_result(self, event: AiocqhttpMessageEvent):
         chain = event.get_result().chain
-        obmsg = await event._parse_onebot_json(MessageChain(chain=chain))
         """检测到有消息发出时自动调用撤回方法，以实现触发词和发送内容的撤回"""
         # if 如果全局撤回、触发撤回、发送撤回都未开启则直接退出，交由其他插件处理
         if not self.config['send_is_recall'] and not self.config['trigger_is_recall']:
@@ -96,10 +98,10 @@ class MyPlugin(Star):
         if self.config['send_is_recall']:
             # 获取原始消息内容
             chain = event.get_result().chain
-            logger.info(chain)
+            plain_texts = event.get_result().get_plain_text()
             # 将原始内容格式化napcat api对应的格式
             if "Plain" in str(chain) and self.config['seg_send_sw']:
-                plain_texts = event.get_result().get_plain_text()
+
                 plain_texts_split = plain_texts.split("\n\n")
                 for plain_text in plain_texts_split:
                     obmsg = [{'type': 'text', 'data': {'text': plain_text}}]
@@ -112,7 +114,7 @@ class MyPlugin(Star):
                 # 结束事件
                 event.stop_event()
                 return
-            obmsg = await event._parse_onebot_json(MessageChain(chain=chain))
+            obmsg = [{'type': 'text', 'data': {'text': plain_texts}}]
             # 初始化发送的结果
             # if 如果可以获取到group_id则把group_id 赋值给变量，并且进入分支
             send_result = await self.command.send_msg(client, obmsg, event.get_group_id(), event.get_sender_id())

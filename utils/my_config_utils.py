@@ -8,7 +8,7 @@ class MyConfigUtils:
     def sw(self, boolean: str, option: str):
         try:
             _sw = ["msg_wl", "qq_wl", "seg_send", "image_no_recall"]
-            boolean = True if boolean == "enable" else False
+            boolean = True if (boolean == "enable".lower() or boolean.lower() == "true") else False
             if option not in _sw:
                 self.config[option + '_is_recall'] = boolean
             else:
