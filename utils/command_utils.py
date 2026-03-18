@@ -13,37 +13,6 @@ class CommandUtils:
         self.my_config = my_config
         self.message = MessageUtils()
 
-    def _get_uptime(self):
-        system = platform.system()
-        if system == 'Linux':
-            try:
-                with open('/proc/uptime', 'r') as f:
-                    uptime_seconds = float(f.readline().split()[0])
-            except FileNotFoundError:
-                return "获取失败"
-        elif system == 'Windows':
-            try:
-                # 使用 GetTickCount64 避免 49.7 天溢出问题
-                lib = ctypes.windll.kernel32
-                lib.GetTickCount64.restype = ctypes.c_uint64  # 显式指定返回类型为 64位无符号整型
-                uptime_ms = lib.GetTickCount64()
-                uptime_seconds = uptime_ms / 1000.0
-            except AttributeError:
-                # 兼容极老版本的 Windows (XP及以下)
-                uptime_ms = ctypes.windll.kernel32.GetTickCount()
-                if uptime_ms < 0: uptime_ms += 2 ** 32  # 手动处理负数情况
-                uptime_seconds = uptime_ms / 1000.0
-            else:
-                return "获取失败"
-
-            # 转换为可读格式
-        days = uptime_seconds // (24 * 3600)
-        hours = (uptime_seconds % (24 * 3600)) // 3600
-        minutes = (uptime_seconds % 3600) // 60
-        seconds = uptime_seconds % 60
-
-        return f"{int(days)}天{int(hours)}小时{int(minutes)}分{int(seconds)}秒"
-
     def recall(self, event: AstrMessageEvent):
         if not event.is_admin():
             return '我才不听你的呢'
@@ -55,7 +24,15 @@ class CommandUtils:
                 if arr[1] not in str(self.message.status_options()) or arr[1] in self.message.status_options()[1]:
                     return self.message.tips()
                 config = self.my_config.get_all_config()
-                msg = f"触发撤回：{config[1]}\n发送撤回：{config[0]}\n消息白名单检测:{config[4]}\n触发者白名单检测：{config[6]}\n不撤回图片：{config[8]}\n分段回复：{config[9]}\n触发消息白名单列表：{config[3]}\n发送消息白名单检测：{config[2]}\n触发者白名单列表:{config[5]}\n消息撤回时间:{config[7]}\n分段随机发送间隔:{config[10]}\n服务器开机时间：{self._get_uptime()}"
+                msg = (f"触发撤回：{config[1]}\n"
+                       f"发送撤回：{config[0]}\n"
+                       f"不撤回图片：{config[8]}\n"
+                       f"分段回复：{config[9]}\n"
+                       f"触发消息白名单列表：{config[3]}\n"
+                       f"发送消息白名单检测：{config[2]}\n"
+                       f"触发者白名单列表:{config[5]}\n"
+                       f"消息撤回时间:{config[7]}\n"
+                       f"分段随机发送间隔:{config[10]}")
                 return msg
             # 开关类
             elif len(arr) == 3:
@@ -112,12 +89,21 @@ class CommandUtils:
 
     async def send_msg(self, client, obmsg, group_id=None, user_id=None):
         send_result = None
-        if group_id:
-            # 调用napcat的send_group_msg接口发送消息并将结果赋值给send_result
-            send_result = await client.send_group_msg(group_id=int(group_id), message=obmsg)
-        # elif 如果可以获取到sender_id则把sender_id 赋值给变量，并且进入分支
-        elif user_id:
-            # 调用napcat的send_private_msg接口发送消息并将结果赋值给send_result
-            send_result = await client.send_private_msg(user_id=int(user_id), message=obmsg)
+        if obmsg["type"] == "text":
+            if group_id:
+                # 调用napcat的send_group_msg接口发送消息并将结果赋值给send_result
+                send_result = await client.send_group_msg(group_id=int(group_id), message=obmsg["data"])
+            # elif 如果可以获取到sender_id则把sender_id 赋值给变量，并且进入分支
+            elif user_id:
+                # 调用napcat的send_private_msg接口发送消息并将结果赋值给send_result
+                send_result = await client.send_private_msg(user_id=int(user_id), message=obmsg["data"])
+        if obmsg["type"] == "Nodes":
+            if group_id:
+                # 调用napcat的send_group_forward_msg接口发送消息并将结果赋值给send_result
+                send_result = await client.send_group_forward_msg(group_id=int(group_id), message=obmsg["data"])
+                # elif 如果可以获取到sender_id则把sender_id 赋值给变量，并且进入分支
+            elif user_id:
+                # 调用napcat的send_private_msg接口发送消息并将结果赋值给send_result
+                send_result = await client.send_private_forward_msg(user_id=int(user_id), message=obmsg["data"])
         return send_result
 

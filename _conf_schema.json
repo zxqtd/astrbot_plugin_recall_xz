@@ -23,23 +23,11 @@
     "hint": "检测触发机器人的内容，出现白名单的内容不撤回",
     "default": []
   },
-  "msg_wl_sw": {
-    "description": "消息白名单检测",
-    "type": "bool",
-    "hint": "true=开启消息白名单检测，false=不开启消息白名单检测",
-    "default": false
-  },
   "qq_wl": {
     "description": "不撤回白名单（qq号检测）",
     "type": "list",
     "hint": "检测触发机器人的qq，出现白名单不撤回(触发和发送)",
     "default": []
-  },
-  "qq_wl_sw": {
-    "description": "不撤回白名单检测（qq号检测）",
-    "type": "bool",
-    "hint": "true=开启不撤回白名单检测，false=不开启不撤回白名单检测",
-    "default": false
   },
    "recall_time": {
         "description": "撤回时间",

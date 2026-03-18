@@ -1,5 +1,5 @@
-SW_OPTIONS = {"all": "撤回所有", "send": "撤回发送消息", "trigger": "撤回触发消息", "msg_wl": "消息不撤回白名单检测",
-              "qq_wl": "触发者qq白名单检测", "seg_send": "消息分段", "image_no_recall": "图片不撤回"}
+SW_OPTIONS = {"all": "撤回所有", "send": "撤回发送消息", "trigger": "撤回触发消息",
+              "seg_send": "消息分段", "image_no_recall": "图片不撤回"}
 BOOLEANS = {"enable": "开启", "disable": "关闭", "true":"开启","false":"关闭"}
 WL_OPTIONS1 = {"send_wl": "发送白名单", "trigger_wl": "触发白名单", "qq_wl": "qq白名单"}
 WL_OPTIONS2 = {"add": "新增", "remove": "删除"}

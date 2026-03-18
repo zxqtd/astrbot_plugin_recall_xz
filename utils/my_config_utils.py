@@ -7,7 +7,7 @@ class MyConfigUtils:
 
     def sw(self, boolean: str, option: str):
         try:
-            _sw = ["msg_wl", "qq_wl", "seg_send", "image_no_recall"]
+            _sw = ["seg_send", "image_no_recall"]
             boolean = True if (boolean == "enable".lower() or boolean.lower() == "true") else False
             if option not in _sw:
                 self.config[option + '_is_recall'] = boolean
@@ -48,15 +48,13 @@ class MyConfigUtils:
 
     def get_all_config(self):
         try:
-            _sw = ["msg_wl", "qq_wl"]
+            _sw = []
             config = [
                 self.config['send_is_recall'],  # 0
                 self.config['trigger_is_recall'],  # 1
                 self.config['send_wl'],  # 2
                 self.config['trigger_wl'],  # 3
-                self.config['msg_wl_sw'],  # 4
                 self.config['qq_wl'],  # 5
-                self.config['qq_wl_sw'],  # 6
                 self.config['recall_time'],  # 7
                 self.config['image_no_recall_sw'],  # 8
                 self.config['seg_send_sw'],  # 9
